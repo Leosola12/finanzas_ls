@@ -6,7 +6,8 @@ Esta herramienta está diseñada para trabajar con el formato de reportes export
 
 👉 Sitio oficial de la herramienta: https://soytoto.com/ 
 
-##DISCLAIMER: 
+## DISCLAIMER: 
+
 No soy asociado a TOTO BOT, ni es una recomendación de uso de la misma. Sólo se explica a fines de poder reutilizar el script para otro tipo de formatos. Desarrollé esta herramienta sólo a fines de mi uso personal
 
 
