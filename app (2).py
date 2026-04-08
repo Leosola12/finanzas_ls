@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import matplotlib.pyplot as plt
 
 st.set_page_config(page_title="Finanzas Personales V6", layout="wide")
 
@@ -150,11 +151,17 @@ if file:
 
         st.subheader("💰 ¿De dónde viene tu ingreso?")
         pie_ing = ingresos_df.groupby("Origen")[ingresos_monto_col].sum()
-        st.pyplot(pie_ing.plot.pie(autopct='%1.1f%%').figure)
+        fig1, ax1 = plt.subplots()
+pie_ing.plot.pie(autopct='%1.1f%%', ax=ax1)
+ax1.set_ylabel("")
+st.pyplot(fig1)
 
         st.subheader("📊 ¿En qué se te va la plata?")
         pie_data = df.groupby("Naturaleza_label")[monto_col].sum()
-        st.pyplot(pie_data.plot.pie(autopct='%1.1f%%').figure)
+        fig2, ax2 = plt.subplots()
+pie_data.plot.pie(autopct='%1.1f%%', ax=ax2)
+ax2.set_ylabel("")
+st.pyplot(fig2)
 
     with tab2:
         st.subheader("📅 Evolución financiera completa")
