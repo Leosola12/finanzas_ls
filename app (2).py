@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-st.set_page_config(page_title="Finanzas Personales V10", layout="wide")
+st.set_page_config(page_title="Finanzas Personales V11", layout="wide")
 
 # =============================
 # Helpers
@@ -42,10 +42,11 @@ def format_ars(x):
 # UI
 # =============================
 
-st.title("📊 Finanzas Personales V10 — Panel configurable")
+st.title("📊 Finanzas Personales V11 — Panel Inteligente")
 
 file = st.file_uploader("Subí tu Excel", type=["xlsx"])
-mapping_file = st.sidebar.file_uploader("Mapeo gastos", type=["csv"])
+mapping_g_file = st.sidebar.file_uploader("Mapeo gastos", type=["csv"])
+mapping_i_file = st.sidebar.file_uploader("Mapeo ingresos", type=["csv"])
 
 if file:
     xls = pd.ExcelFile(file)
@@ -70,31 +71,35 @@ if file:
 
     meses = sorted(gastos_df["Mes"].dropna().unique())
 
-    # Sidebar filters
+    # Filters
     st.sidebar.header("📅 Filtros")
     meses_sel = st.sidebar.multiselect("Meses", meses, default=meses)
-    modo = st.sidebar.radio("Modo", ["Total","Promedio mensual"])
 
     gastos_df = gastos_df[gastos_df["Mes"].isin(meses_sel)]
     ingresos_df = ingresos_df[ingresos_df["Mes"].isin(meses_sel)]
     n_meses = max(len(meses_sel),1)
 
-    # Mapping
-    if mapping_file:
-        map_df = pd.read_csv(mapping_file)
-        map_df["subcat_norm"] = normalize_series(map_df["Subcategoria"])
+    # Mapping gastos
+    if mapping_g_file:
+        map_g = pd.read_csv(mapping_g_file)
+        map_g["subcat_norm"] = normalize_series(map_g["Subcategoria"])
         gastos_df["subcat_norm"] = normalize_series(gastos_df[subcat_col])
-        gastos_df = gastos_df.merge(map_df, on="subcat_norm", how="left")
+        gastos_df = gastos_df.merge(map_g, on="subcat_norm", how="left")
     else:
         gastos_df["Naturaleza"] = "SIN"
+
+    # Mapping ingresos
+    if mapping_i_file:
+        map_i = pd.read_csv(mapping_i_file)
+        map_i["subcat_norm"] = normalize_series(map_i["Subcategoria"])
+        ingresos_df["subcat_norm"] = normalize_series(ingresos_df[tipo_ing_col])
+        ingresos_df = ingresos_df.merge(map_i, on="subcat_norm", how="left")
+    else:
+        ingresos_df["Estabilidad"] = "SIN"
 
     # Aggregations
     gasto_group = gastos_df.groupby(subcat_col)[monto_col].sum()
     ing_group = ingresos_df.groupby(tipo_ing_col)[ing_monto_col].sum()
-
-    if modo == "Promedio mensual":
-        gasto_group = gasto_group / n_meses
-        ing_group = ing_group / n_meses
 
     total_ing = ing_group.sum()
     total_gas = gasto_group.sum()
@@ -102,98 +107,72 @@ if file:
 
     tasa_ahorro = (ahorro / total_ing) if total_ing != 0 else 0
 
-    # Naturaleza splits
-    if "Naturaleza" in gastos_df.columns:
-        nat = gastos_df.groupby("Naturaleza")[monto_col].sum()
-        if modo == "Promedio mensual":
-            nat = nat / n_meses
-        nec = nat.get("NEC",0)
-        disc = nat.get("DISC",0)
-        fijo = nat.get("FIJO",0)
-    else:
-        nec = disc = fijo = 0
+    # Naturaleza
+    nat = gastos_df.groupby("Naturaleza")[monto_col].sum()
+    nec = nat.get("NEC",0)
+    disc = nat.get("DISC",0)
+    fijo = nat.get("FIJO",0)
+
+    # Ingresos estabilidad
+    est = ingresos_df.groupby("Estabilidad")[ing_monto_col].sum()
+    fijo_ing = est.get("FIJO",0)
+    var_ing = est.get("VARIABLE",0)
 
     # =============================
-    # SIDEBAR METRICS (UX)
+    # KPIs
     # =============================
 
-    st.sidebar.header("📊 Métricas")
-
-    perfil = st.sidebar.selectbox("Perfil", ["Personalizado","Control básico","Optimización","Diagnóstico"])
-
-    default_checks = {
-        "tasa_nec": False,
-        "tasa_disc": False,
-        "ratio_disc_nec": False,
-        "top_subcat": False,
-        "variabilidad": False,
-        "pareto": False
-    }
-
-    if perfil == "Control básico":
-        default_checks.update({"tasa_nec":True,"tasa_disc":True})
-    elif perfil == "Optimización":
-        default_checks.update({"ratio_disc_nec":True,"pareto":True})
-    elif perfil == "Diagnóstico":
-        default_checks.update({"variabilidad":True,"top_subcat":True})
-
-    tasa_nec_on = st.sidebar.checkbox("Tasa NEC", value=default_checks["tasa_nec"])
-    tasa_disc_on = st.sidebar.checkbox("Tasa DISC", value=default_checks["tasa_disc"])
-    ratio_on = st.sidebar.checkbox("Ratio DISC/NEC", value=default_checks["ratio_disc_nec"])
-    top_on = st.sidebar.checkbox("Top subcategoría", value=default_checks["top_subcat"])
-    var_on = st.sidebar.checkbox("Variabilidad ahorro", value=default_checks["variabilidad"])
-    pareto_on = st.sidebar.checkbox("Pareto", value=default_checks["pareto"])
-
-    # =============================
-    # KPIs BASE
-    # =============================
-
-    c1,c2,c3,c4,c5 = st.columns(5)
+    c1,c2,c3,c4 = st.columns(4)
     c1.metric("Ingresos", format_ars(total_ing))
     c2.metric("Gastos", format_ars(total_gas))
     c3.metric("Ahorro", format_ars(ahorro))
     c4.metric("Tasa ahorro", f"{tasa_ahorro:.1%}")
-    c5.metric("Costo vida", format_ars(nec+fijo))
 
     # =============================
-    # MÉTRICAS ACTIVAS
+    # EXPLICACIONES AMIGABLES
     # =============================
 
-    st.subheader("📊 Análisis activo")
+    st.subheader("🧠 Lectura rápida")
 
-    if tasa_nec_on:
-        st.write("Tasa NEC:", f"{(nec/total_ing if total_ing else 0):.1%}")
+    if total_ing > 0:
+        tasa_nec = nec / total_ing
+        tasa_disc = disc / total_ing
+        ratio = (disc / nec) if nec else 0
 
-    if tasa_disc_on:
-        st.write("Tasa DISC:", f"{(disc/total_ing if total_ing else 0):.1%}")
+        st.write(f"💡 Necesidades básicas: {tasa_nec:.1%} de tus ingresos")
+        st.write(f"🎯 Gustos personales: {tasa_disc:.1%} de tus ingresos")
 
-    if ratio_on:
-        st.write("Ratio DISC/NEC:", (disc/nec if nec else 0))
+        if ratio > 1:
+            st.warning("Estás gastando más en gustos que en necesidades.")
+        else:
+            st.success("Tu gasto en gustos está bajo control respecto a tus necesidades.")
 
-    if top_on and not gasto_group.empty:
-        top = gasto_group.sort_values(ascending=False).iloc[0]
-        st.write("Top subcategoría:", format_ars(top))
+    if total_ing > 0:
+        var_ratio = var_ing / total_ing
+        st.write(f"💰 Ingresos variables: {var_ratio:.1%}")
 
-    if pareto_on and not gasto_group.empty:
-        dfp = gasto_group.sort_values(ascending=False).reset_index()
-        dfp["%"] = dfp[monto_col]/dfp[monto_col].sum()
-        dfp["% acum"] = dfp["%"].cumsum()
-        st.dataframe(dfp.head(10))
-
-    if var_on:
-        evo = ingresos_df.groupby("Mes")[ing_monto_col].sum() - gastos_df.groupby("Mes")[monto_col].sum()
-        var = evo.std()
-        st.write("Variabilidad ahorro:", format_ars(var))
+        if var_ratio > 0.5:
+            st.warning("Gran parte de tus ingresos no es estable.")
+        else:
+            st.success("Tus ingresos son relativamente estables.")
 
     # =============================
     # GRÁFICOS
     # =============================
 
+    st.subheader("📊 Distribución de gastos")
+    st.plotly_chart(px.pie(values=gasto_group.values, names=gasto_group.index))
+
+    st.subheader("💰 Distribución de ingresos")
+    st.plotly_chart(px.pie(values=ing_group.values, names=ing_group.index))
+
+    # Evolución
     st.subheader("📈 Evolución")
     evo_df = pd.DataFrame({
         "Ingresos": ingresos_df.groupby("Mes")[ing_monto_col].sum(),
         "Gastos": gastos_df.groupby("Mes")[monto_col].sum()
     }).fillna(0)
+
     st.line_chart(evo_df)
 
 else:
