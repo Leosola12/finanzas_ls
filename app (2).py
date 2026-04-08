@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 
-st.set_page_config(page_title="Finanzas Personales V4", layout="wide")
+st.set_page_config(page_title="Finanzas Personales V3", layout="wide")
 
 # =============================
 # Helpers
@@ -50,7 +50,7 @@ map_naturaleza = {
 # UI
 # =============================
 
-st.title("📊 Finanzas Personales V4")
+st.title("📊 Finanzas Personales V3")
 
 file = st.file_uploader("Subí tu Excel", type=["xlsx"])
 mapping_file = st.sidebar.file_uploader("Subir mapeo.csv", type=["csv"])
@@ -86,7 +86,31 @@ if file:
         })
         mapping_df["subcat_norm"] = normalize_series(mapping_df["Subcategoria"])
 
-    df = gastos_df.merge(mapping_df, on="subcat_norm", how="left")
+    st.sidebar.subheader("🧠 Editor de Mapeo")
+
+    areas = ["ALIM","VIV","TRANS","OCIO","CONS","SALUD","FIN","LAB","SERV","SIN_MAPEAR"]
+    naturalezas = ["FIJO","NEC","DISC","SIN_MAPEAR"]
+    controlables = ["Si","No"]
+
+    edited_rows = []
+
+    for i, row in mapping_df.iterrows():
+        col1, col2, col3 = st.sidebar.columns(3)
+
+        subcat = row["Subcategoria"]
+
+        area = col1.selectbox("Area", areas, index=areas.index(row["Area"]) if row["Area"] in areas else 0, key=f"a{i}")
+        nat = col2.selectbox("Nat", naturalezas, index=naturalezas.index(row["Naturaleza"]) if row["Naturaleza"] in naturalezas else 0, key=f"n{i}")
+        ctrl = col3.selectbox("Ctrl", controlables, index=controlables.index(row["Controlable"]) if row["Controlable"] in controlables else 0, key=f"c{i}")
+
+        edited_rows.append([subcat, area, nat, ctrl])
+
+    updated_mapping = pd.DataFrame(edited_rows, columns=["Subcategoria","Area","Naturaleza","Controlable"])
+    updated_mapping["subcat_norm"] = normalize_series(updated_mapping["Subcategoria"])
+
+    st.sidebar.download_button("💾 Descargar mapeo", updated_mapping.to_csv(index=False), "mapeo.csv")
+
+    df = gastos_df.merge(updated_mapping, on="subcat_norm", how="left")
     df["Naturaleza_label"] = df["Naturaleza"].map(map_naturaleza)
 
     ingresos_col = find_column(ingresos_df, ["monto","importe"])
@@ -96,54 +120,64 @@ if file:
     ahorro_teorico = total_ingresos - total_gastos
 
     # =============================
+    # INPUTS POR MES
+    # =============================
+
+    st.sidebar.subheader("💰 Ajustes reales por mes")
+
+    meses = sorted(df["Mes"].unique())
+
+    ajustes = []
+
+    for mes in meses:
+        col1, col2 = st.sidebar.columns(2)
+        ahorro = col1.number_input(f"Ahorro {mes}", value=0, key=f"ah_{mes}")
+        deuda = col2.number_input(f"Deuda {mes}", value=0, key=f"de_{mes}")
+        ajustes.append([mes, ahorro, deuda])
+
+    ajustes_df = pd.DataFrame(ajustes, columns=["Mes","Ahorro_real","Deuda"])
+
+    # =============================
     # TABS
     # =============================
 
-    tab1, tab2, tab3 = st.tabs(["📊 Resumen", "📅 Evolución", "🔥 Fugas"])
-
-    # =============================
-    # TAB 1
-    # =============================
+    tab1, tab2, tab3, tab4 = st.tabs(["📊 Dashboard", "📅 Evolución", "🔥 Fugas", "🧠 Insights"])
 
     with tab1:
-        st.subheader("📊 Resumen general")
-
         col1, col2, col3 = st.columns(3)
         col1.metric("Ingresos", format_ars(total_ingresos))
         col2.metric("Gastos", format_ars(total_gastos))
-        col3.metric("Ahorro", format_ars(ahorro_teorico))
+        col3.metric("Ahorro teórico", format_ars(ahorro_teorico))
 
-        st.subheader("📊 ¿En qué se te va la plata?")
-
-        pie_data = df.groupby("Naturaleza_label")[monto_col].sum()
-        st.pyplot(pie_data.plot.pie(autopct='%1.1f%%').figure)
-
-        st.subheader("📊 Distribución por subcategoría (Top 10)")
-        st.bar_chart(df.groupby(subcat_col)[monto_col].sum().sort_values(ascending=False).head(10))
-
-    # =============================
-    # TAB 2
-    # =============================
+        st.subheader("Gasto por tipo")
+        st.bar_chart(df.groupby("Naturaleza_label")[monto_col].sum())
 
     with tab2:
-        st.subheader("📅 Evolución de gastos en el tiempo")
-
         gasto_mensual = df.groupby("Mes")[monto_col].sum()
         st.line_chart(gasto_mensual)
 
-        st.subheader("📊 Evolución por tipo de gasto")
-        evo_nat = df.groupby(["Mes","Naturaleza_label"])[monto_col].sum().unstack()
-        st.line_chart(evo_nat)
-
-    # =============================
-    # TAB 3
-    # =============================
+        st.subheader("Comparación mensual")
+        comp = gasto_mensual.reset_index().merge(ajustes_df, on="Mes", how="left")
+        st.dataframe(comp)
 
     with tab3:
-        st.subheader("🔥 Principales fugas de dinero")
-
         fugas = df[df["Controlable"] == "Si"]
         st.dataframe(fugas.groupby(subcat_col)[monto_col].sum().sort_values(ascending=False).head(10))
+
+    with tab4:
+        st.subheader("Insights")
+
+        disc = df[df["Naturaleza"] == "DISC"][monto_col].sum()
+        total = df[monto_col].sum()
+
+        if total > 0:
+            ratio = disc / total * 100
+            st.write(f"🎯 Discrecional: {ratio:.1f}%")
+
+            if ratio > 40:
+                st.warning("⚠️ Alto gasto discrecional")
+            else:
+                st.success("Buen nivel de gasto")
 
 else:
     st.info("Subí un Excel para comenzar")
