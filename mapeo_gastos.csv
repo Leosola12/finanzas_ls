@@ -1,0 +1,39 @@
+Subcategoria,Area,Naturaleza,Controlable
+Almuerzos laborales,ALIM,NEC,Si
+Asados,ALIM,DISC,Si
+Carnicería,ALIM,NEC,Si
+Comida rápida,ALIM,DISC,Si
+Comidas sociales,ALIM,DISC,Si
+Heladerías,ALIM,DISC,Si
+Restaurantes y delivery,ALIM,DISC,Si
+Supermercado,ALIM,NEC,Si
+Yerba Mate,ALIM,NEC,Si
+
+Deporte,SALUD,DISC,Si
+Fútbol,OCIO,DISC,Si
+
+Artículos de ferretería,VIV,NEC,Si
+Auriculares y audio,CONS,DISC,Si
+Carteras y mochilas,CONS,DISC,Si
+Cuidado personal,CONS,NEC,Si
+Electrodomésticos,VIV,NEC,Si
+Electrónicos,CONS,DISC,Si
+Hogar,VIV,NEC,Si
+Instrumentos musicales,OCIO,DISC,Si
+Medicina,SALUD,NEC,No
+Papelería y librería,CONS,NEC,Si
+Regalos y sorpresas,OCIO,DISC,Si
+Suscripciones,SERV,DISC,Si
+TV y monitores,CONS,DISC,Si
+Vestimenta,CONS,DISC,Si
+
+Apps de viajes,TRANS,DISC,Si
+Transporte Público,TRANS,NEC,Si
+
+Trámites e impuestos,FIN,NEC,No
+
+Otros (Recreación),OCIO,DISC,Si
+
+Alquiler,VIV,FIJO,No
+Conectividad,VIV,FIJO,No
+Otros (Vivienda),VIV,NEC,Si
