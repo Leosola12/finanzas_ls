@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 
-st.set_page_config(page_title="Finanzas Personales V5", layout="wide")
+st.set_page_config(page_title="Finanzas Personales V4", layout="wide")
 
 # =============================
 # Helpers
@@ -50,7 +50,7 @@ map_naturaleza = {
 # UI
 # =============================
 
-st.title("📊 Finanzas Personales V5")
+st.title("📊 Finanzas Personales V4")
 
 file = st.file_uploader("Subí tu Excel", type=["xlsx"])
 mapping_file = st.sidebar.file_uploader("Subir mapeo.csv", type=["csv"])
@@ -63,8 +63,6 @@ if file:
     subcat_col = find_column(gastos_df, ["subcategoria", "subcategoría"])
     monto_col = find_column(gastos_df, ["monto", "importe"])
     fecha_col = find_column(gastos_df, ["fecha"])
-    ingresos_monto_col = find_column(ingresos_df, ["monto","importe"])
-    ingresos_fecha_col = find_column(ingresos_df, ["fecha"])
 
     gastos_df["subcat_norm"] = normalize_series(gastos_df[subcat_col])
 
@@ -73,12 +71,6 @@ if file:
         gastos_df["Mes"] = gastos_df["Fecha"].dt.to_period("M").astype(str)
     else:
         gastos_df["Mes"] = "Sin fecha"
-
-    if ingresos_fecha_col:
-        ingresos_df["Fecha"] = pd.to_datetime(ingresos_df[ingresos_fecha_col], errors="coerce")
-        ingresos_df["Mes"] = ingresos_df["Fecha"].dt.to_period("M").astype(str)
-    else:
-        ingresos_df["Mes"] = "Sin fecha"
 
     unique_subcats = gastos_df[["subcat_norm", subcat_col]].drop_duplicates()
 
@@ -97,7 +89,9 @@ if file:
     df = gastos_df.merge(mapping_df, on="subcat_norm", how="left")
     df["Naturaleza_label"] = df["Naturaleza"].map(map_naturaleza)
 
-    total_ingresos = ingresos_df[ingresos_monto_col].sum() if ingresos_monto_col else 0
+    ingresos_col = find_column(ingresos_df, ["monto","importe"])
+
+    total_ingresos = ingresos_df[ingresos_col].sum() if ingresos_col else 0
     total_gastos = gastos_df[monto_col].sum()
     ahorro_teorico = total_ingresos - total_gastos
 
@@ -106,6 +100,10 @@ if file:
     # =============================
 
     tab1, tab2, tab3 = st.tabs(["📊 Resumen", "📅 Evolución", "🔥 Fugas"])
+
+    # =============================
+    # TAB 1
+    # =============================
 
     with tab1:
         st.subheader("📊 Resumen general")
@@ -116,26 +114,34 @@ if file:
         col3.metric("Ahorro", format_ars(ahorro_teorico))
 
         st.subheader("📊 ¿En qué se te va la plata?")
+
         pie_data = df.groupby("Naturaleza_label")[monto_col].sum()
         st.pyplot(pie_data.plot.pie(autopct='%1.1f%%').figure)
 
+        st.subheader("📊 Distribución por subcategoría (Top 10)")
+        st.bar_chart(df.groupby(subcat_col)[monto_col].sum().sort_values(ascending=False).head(10))
+
+    # =============================
+    # TAB 2
+    # =============================
+
     with tab2:
-        st.subheader("📅 Evolución financiera completa")
+        st.subheader("📅 Evolución de gastos en el tiempo")
 
-        gastos_mensual = df.groupby("Mes")[monto_col].sum()
-        ingresos_mensual = ingresos_df.groupby("Mes")[ingresos_monto_col].sum()
+        gasto_mensual = df.groupby("Mes")[monto_col].sum()
+        st.line_chart(gasto_mensual)
 
-        evo = pd.DataFrame({
-            "Ingresos": ingresos_mensual,
-            "Gastos": gastos_mensual
-        }).fillna(0)
+        st.subheader("📊 Evolución por tipo de gasto")
+        evo_nat = df.groupby(["Mes","Naturaleza_label"])[monto_col].sum().unstack()
+        st.line_chart(evo_nat)
 
-        evo["Ahorro"] = evo["Ingresos"] - evo["Gastos"]
-
-        st.line_chart(evo)
+    # =============================
+    # TAB 3
+    # =============================
 
     with tab3:
-        st.subheader("🔥 Principales oportunidades de mejora")
+        st.subheader("🔥 Principales fugas de dinero")
+
         fugas = df[df["Controlable"] == "Si"]
         st.dataframe(fugas.groupby(subcat_col)[monto_col].sum().sort_values(ascending=False).head(10))
 
