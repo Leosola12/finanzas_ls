@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 
-st.set_page_config(page_title="Finanzas Personales V2", layout="wide")
+st.set_page_config(page_title="Finanzas Personales V3", layout="wide")
 
 # =============================
 # Helpers
@@ -50,7 +50,7 @@ map_naturaleza = {
 # UI
 # =============================
 
-st.title("📊 Finanzas Personales V2")
+st.title("📊 Finanzas Personales V3")
 
 file = st.file_uploader("Subí tu Excel", type=["xlsx"])
 mapping_file = st.sidebar.file_uploader("Subir mapeo.csv", type=["csv"])
@@ -63,10 +63,6 @@ if file:
     subcat_col = find_column(gastos_df, ["subcategoria", "subcategoría"])
     monto_col = find_column(gastos_df, ["monto", "importe"])
     fecha_col = find_column(gastos_df, ["fecha"])
-
-    if not subcat_col or not monto_col:
-        st.error("No se pudieron detectar columnas clave")
-        st.stop()
 
     gastos_df["subcat_norm"] = normalize_series(gastos_df[subcat_col])
 
@@ -123,7 +119,23 @@ if file:
     total_gastos = gastos_df[monto_col].sum()
     ahorro_teorico = total_ingresos - total_gastos
 
-    ahorro_real = st.sidebar.number_input("Ahorro real", value=0)
+    # =============================
+    # INPUTS POR MES
+    # =============================
+
+    st.sidebar.subheader("💰 Ajustes reales por mes")
+
+    meses = sorted(df["Mes"].unique())
+
+    ajustes = []
+
+    for mes in meses:
+        col1, col2 = st.sidebar.columns(2)
+        ahorro = col1.number_input(f"Ahorro {mes}", value=0, key=f"ah_{mes}")
+        deuda = col2.number_input(f"Deuda {mes}", value=0, key=f"de_{mes}")
+        ajustes.append([mes, ahorro, deuda])
+
+    ajustes_df = pd.DataFrame(ajustes, columns=["Mes","Ahorro_real","Deuda"])
 
     # =============================
     # TABS
@@ -140,45 +152,32 @@ if file:
         st.subheader("Gasto por tipo")
         st.bar_chart(df.groupby("Naturaleza_label")[monto_col].sum())
 
-        st.subheader("Controlable vs No")
-        st.bar_chart(df.groupby("Controlable")[monto_col].sum())
-
     with tab2:
-        st.subheader("Evolución mensual")
         gasto_mensual = df.groupby("Mes")[monto_col].sum()
         st.line_chart(gasto_mensual)
 
-        st.subheader("Por naturaleza")
-        evo_nat = df.groupby(["Mes","Naturaleza_label"])[monto_col].sum().unstack()
-        st.line_chart(evo_nat)
+        st.subheader("Comparación mensual")
+        comp = gasto_mensual.reset_index().merge(ajustes_df, on="Mes", how="left")
+        st.dataframe(comp)
 
     with tab3:
-        st.subheader("Top gastos")
-        st.dataframe(df.groupby(subcat_col)[monto_col].sum().sort_values(ascending=False).head(10))
-
-        st.subheader("Fugas (controlables)")
         fugas = df[df["Controlable"] == "Si"]
         st.dataframe(fugas.groupby(subcat_col)[monto_col].sum().sort_values(ascending=False).head(10))
 
     with tab4:
-        st.subheader("Insights automáticos")
+        st.subheader("Insights")
 
         disc = df[df["Naturaleza"] == "DISC"][monto_col].sum()
         total = df[monto_col].sum()
 
         if total > 0:
             ratio = disc / total * 100
-            st.write(f"🎯 Gasto discrecional: {ratio:.1f}%")
+            st.write(f"🎯 Discrecional: {ratio:.1f}%")
 
             if ratio > 40:
                 st.warning("⚠️ Alto gasto discrecional")
             else:
-                st.success("✅ Buen control del gasto discrecional")
-
-        if ahorro_real < 0:
-            st.error("🚨 Estás en déficit real")
-        else:
-            st.success("💰 Ahorro positivo")
+                st.success("Buen nivel de gasto")
 
 else:
     st.info("Subí un Excel para comenzar")
