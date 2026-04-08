@@ -96,14 +96,13 @@ if file:
     df["Naturaleza_label"] = df["Naturaleza"].map(map_naturaleza)
 
     # =============================
-    # INGRESOS (TU MODELO REAL)
+    # INGRESOS
     # =============================
 
     ingresos_monto_col = find_column(ingresos_df, ["monto","importe"])
     ingresos_fecha_col = find_column(ingresos_df, ["fecha"])
     tipo_ing_col = find_column(ingresos_df, ["tipo de ingreso", "tipo ingreso"])
 
-    # usamos "Tipo de Ingreso" como subcategoria
     ingresos_df["subcat_norm"] = normalize_series(ingresos_df[tipo_ing_col])
 
     if ingresos_fecha_col:
@@ -150,18 +149,22 @@ if file:
         col3.metric("Ahorro", format_ars(ahorro_teorico))
 
         st.subheader("💰 ¿De dónde viene tu ingreso?")
-        pie_ing = ingresos_df.groupby("Origen")[ingresos_monto_col].sum()
+        pie_ing = ingresos_df.groupby("Origen")[ingresos_monto_col].sum().sort_values(ascending=False)
+
         fig1, ax1 = plt.subplots()
-pie_ing.plot.pie(autopct='%1.1f%%', ax=ax1)
-ax1.set_ylabel("")
-st.pyplot(fig1)
+        pie_ing.plot.pie(autopct='%1.1f%%', ax=ax1)
+        ax1.set_ylabel("")
+        ax1.set_title("Distribución de ingresos")
+        st.pyplot(fig1)
 
         st.subheader("📊 ¿En qué se te va la plata?")
-        pie_data = df.groupby("Naturaleza_label")[monto_col].sum()
+        pie_data = df.groupby("Naturaleza_label")[monto_col].sum().sort_values(ascending=False)
+
         fig2, ax2 = plt.subplots()
-pie_data.plot.pie(autopct='%1.1f%%', ax=ax2)
-ax2.set_ylabel("")
-st.pyplot(fig2)
+        pie_data.plot.pie(autopct='%1.1f%%', ax=ax2)
+        ax2.set_ylabel("")
+        ax2.set_title("Distribución de gastos")
+        st.pyplot(fig2)
 
     with tab2:
         st.subheader("📅 Evolución financiera completa")
