@@ -2,11 +2,12 @@
 
 ## 📥 Formato de datos esperado
 
-Esta herramienta está diseñada para trabajar con el formato de reportes exportados por **TOTO BOT**.
+Esta herramienta está diseñada para trabajar con el formato de reportes exportados por **TOTO BOT**. Aunque puede readaptarse (ver al final del readme)
 
 👉 Sitio oficial de la herramienta: https://soytoto.com/ 
 
-DISCLAIMER: no soy asociado, ni es una recomendación de uso de la misma. Sólo se explica a fines de poder reutilizar el script para otro tipo de formatos. 
+##DISCLAIMER: 
+No soy asociado a TOTO BOT, ni es una recomendación de uso de la misma. Sólo se explica a fines de poder reutilizar el script para otro tipo de formatos. Desarrollé esta herramienta sólo a fines de mi uso personal
 
 
 El archivo Excel base debe contener al menos dos hojas:
@@ -245,3 +246,38 @@ Intereses,Inversiones,VARIABLE
 👉 Esta herramienta los interpreta (en función de mis decisiones, intenciones y necesidades de información).
 
 El mapping es el puente entre ambos.
+
+
+
+## 🔄 Compatibilidad con otras planillas
+
+Si bien esta herramienta está pensada para trabajar con reportes de TOTO BOT, también puede adaptarse a otras fuentes de datos.
+
+Para que el análisis funcione correctamente, la planilla debe contener como mínimo:
+
+### Para gastos:
+
+* Fecha
+* Subcategoría
+* Monto
+
+### Para ingresos:
+
+* Fecha
+* Tipo de ingreso
+* Monto
+
+---
+
+⚠️ Importante:
+
+La calidad del análisis depende directamente de la calidad de la categorización.
+
+Subcategorías inconsistentes o genéricas (ej: "varios", "otros") reducen significativamente el valor de la herramienta.
+
+---
+
+💡 Recomendación:
+
+Mantener una estructura clara y consistente de subcategorías para aprovechar al máximo las capacidades de análisis.
+
