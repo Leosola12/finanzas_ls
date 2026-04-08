@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-st.set_page_config(page_title="Finanzas Personales V8", layout="wide")
+st.set_page_config(page_title="Finanzas Personales V9", layout="wide")
 
 # =============================
 # Helpers
@@ -44,19 +44,18 @@ def format_ars(x):
 # UI
 # =============================
 
-st.title("📊 Finanzas Personales V8")
+st.title("📊 Finanzas Personales V9")
 
 file = st.file_uploader("Subí tu Excel", type=["xlsx"])
+mapping_file = st.sidebar.file_uploader("Subir mapeo_gastos.csv", type=["csv"])
+mapping_ing_file = st.sidebar.file_uploader("Subir mapeo_ingresos.csv", type=["csv"])
 
 if file:
     xls = pd.ExcelFile(file)
     gastos_df = pd.read_excel(xls, sheet_name=xls.sheet_names[0])
     ingresos_df = pd.read_excel(xls, sheet_name=xls.sheet_names[1])
 
-    # =============================
     # COLUMNAS
-    # =============================
-
     subcat_col = find_column(gastos_df, ["subcategoria", "subcategoría"])
     monto_col = find_column(gastos_df, ["monto", "importe"])
     fecha_col = find_column(gastos_df, ["fecha"])
@@ -65,10 +64,7 @@ if file:
     ingresos_fecha_col = find_column(ingresos_df, ["fecha"])
     tipo_ing_col = find_column(ingresos_df, ["tipo de ingreso", "tipo ingreso"])
 
-    # =============================
     # FECHAS
-    # =============================
-
     gastos_df["Fecha"] = pd.to_datetime(gastos_df[fecha_col], errors="coerce")
     ingresos_df["Fecha"] = pd.to_datetime(ingresos_df[ingresos_fecha_col], errors="coerce")
 
@@ -83,19 +79,35 @@ if file:
 
     st.sidebar.header("📅 Filtros")
 
-    meses_sel = st.sidebar.multiselect(
-        "Seleccionar meses",
-        options=meses_disponibles,
-        default=meses_disponibles
-    )
+    meses_sel = st.sidebar.multiselect("Seleccionar meses", meses_disponibles, default=meses_disponibles)
+    modo = st.sidebar.radio("Modo", ["Total", "Promedio mensual"])
 
-    modo = st.sidebar.radio("Modo de análisis", ["Total", "Promedio mensual"])
-
-    # Filtrado
     gastos_df = gastos_df[gastos_df["Mes"].isin(meses_sel)]
     ingresos_df = ingresos_df[ingresos_df["Mes"].isin(meses_sel)]
 
     n_meses = max(len(meses_sel), 1)
+
+    # =============================
+    # MAPEO (REVIVE)
+    # =============================
+
+    if mapping_file:
+        map_gastos = pd.read_csv(mapping_file)
+        map_gastos["subcat_norm"] = normalize_series(map_gastos["Subcategoria"])
+        gastos_df["subcat_norm"] = normalize_series(gastos_df[subcat_col])
+        gastos_df = gastos_df.merge(map_gastos, on="subcat_norm", how="left")
+    else:
+        gastos_df["Naturaleza"] = "SIN_MAPEAR"
+
+    # =============================
+    # COSTO DE VIDA (FIJO + NEC)
+    # =============================
+
+    if "Naturaleza" in gastos_df.columns:
+        costo_vida_df = gastos_df[gastos_df["Naturaleza"].isin(["FIJO", "NEC"])]
+        costo_vida = costo_vida_df[monto_col].sum() / n_meses
+    else:
+        costo_vida = 0
 
     # =============================
     # AGRUPACIONES
@@ -111,18 +123,14 @@ if file:
     gasto_group = gasto_group.sort_values(ascending=False)
     ing_group = ing_group.sort_values(ascending=False)
 
-    # =============================
-    # AGRUPAR "OTROS" (<1.5%)
-    # =============================
-
+    # AGRUPAR OTROS
     total_gastos = gasto_group.sum()
     threshold = total_gastos * 0.015
 
     gastos_main = gasto_group[gasto_group >= threshold]
-    gastos_otros = gasto_group[gasto_group < threshold].sum()
-
-    if gastos_otros > 0:
-        gastos_main["Otros"] = gastos_otros
+    otros = gasto_group[gasto_group < threshold].sum()
+    if otros > 0:
+        gastos_main["Otros"] = otros
 
     # =============================
     # KPIs
@@ -136,46 +144,51 @@ if file:
     # TABS
     # =============================
 
-    tab1, tab2 = st.tabs(["📊 Resumen", "📅 Evolución"])
+    tab1, tab2, tab3 = st.tabs(["📊 Resumen", "📅 Evolución", "🔍 Drill-down"])
 
     with tab1:
-        col1, col2, col3 = st.columns(3)
+        col1, col2, col3, col4 = st.columns(4)
         col1.metric("Ingresos", format_ars(total_ingresos))
         col2.metric("Gastos", format_ars(total_gastos))
         col3.metric("Ahorro", format_ars(ahorro))
+        col4.metric("Costo de vida mensual", format_ars(costo_vida))
 
-        # INGRESOS
-        st.subheader("💰 Ingresos por tipo")
-        fig_ing = px.pie(
-            values=ing_group.values,
-            names=ing_group.index,
-            title="Distribución de ingresos"
-        )
-        st.plotly_chart(fig_ing, use_container_width=True)
+        st.subheader("💰 Ingresos")
+        st.plotly_chart(px.pie(values=ing_group.values, names=ing_group.index), use_container_width=True)
 
-        # GASTOS
-        st.subheader("📊 Gastos por subcategoría")
-        fig_gasto = px.pie(
-            values=gastos_main.values,
-            names=gastos_main.index,
-            title="Distribución de gastos"
-        )
-        st.plotly_chart(fig_gasto, use_container_width=True)
+        st.subheader("📊 Gastos")
+        st.plotly_chart(px.pie(values=gastos_main.values, names=gastos_main.index), use_container_width=True)
 
     with tab2:
-        st.subheader("📅 Evolución")
-
         gastos_mensual = gastos_df.groupby("Mes")[monto_col].sum()
         ingresos_mensual = ingresos_df.groupby("Mes")[ingresos_monto_col].sum()
 
-        evo = pd.DataFrame({
-            "Ingresos": ingresos_mensual,
-            "Gastos": gastos_mensual
-        }).fillna(0)
-
+        evo = pd.DataFrame({"Ingresos": ingresos_mensual, "Gastos": gastos_mensual}).fillna(0)
         evo["Ahorro"] = evo["Ingresos"] - evo["Gastos"]
 
+        st.subheader("📅 Evolución")
         st.line_chart(evo)
+
+        if len(evo) > 1:
+            ultimo = evo.iloc[-1]
+            promedio = evo.mean()
+
+            st.subheader("📊 Comparación último mes vs promedio")
+            comp = pd.DataFrame({
+                "Último mes": ultimo,
+                "Promedio": promedio
+            })
+            st.bar_chart(comp)
+
+    with tab3:
+        st.subheader("🔍 Drill-down por subcategoría")
+
+        subcat_sel = st.selectbox("Elegir subcategoría", gasto_group.index)
+
+        detalle = gastos_df[gastos_df[subcat_col] == subcat_sel]
+        detalle_mensual = detalle.groupby("Mes")[monto_col].sum()
+
+        st.line_chart(detalle_mensual)
 
 else:
     st.info("Subí un Excel para comenzar")
