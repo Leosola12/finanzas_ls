@@ -7,7 +7,7 @@ import io
 import base64
 from datetime import datetime
 
-st.set_page_config(page_title="Finanzas Personales V14", layout="wide", page_icon="💰")
+st.set_page_config(page_title="Finanzas Personales V1.14", layout="wide", page_icon="💰")
 
 # ─────────────────────────────────────────
 # CSS
@@ -132,7 +132,7 @@ with st.sidebar:
     mapping_i_file = st.file_uploader("Mapeo ingresos (.csv)", type=["csv"])
 
 if not file:
-    st.markdown("## 💰 Finanzas Personales V13")
+    st.markdown("## 💰 Finanzas Personales V.14")
     st.info("Subí tu Excel en el panel izquierdo para comenzar.")
     st.stop()
 
@@ -265,7 +265,7 @@ cat_mes = gastos_raw.groupby(["Mes", subcat_col])[monto_col].sum().reset_index()
 # ─────────────────────────────────────────
 # TABS
 # ─────────────────────────────────────────
-st.markdown("# 💰 Finanzas Personales V13")
+st.markdown("# 💰 Finanzas Personales V1.14")
 
 tab1, tab2, tab3, tab4 = st.tabs([
     "📋 Resumen", 
@@ -959,7 +959,7 @@ with tab4:
 </div>
 
 <div class="footer">
-  Finanzas Personales V13 — Generado el {fecha_gen} · Período: {periodo_label} · {n_meses} mes(es) analizado(s)
+  Finanzas Personales V1.14 — Generado el {fecha_gen} · Período: {periodo_label} · {n_meses} mes(es) analizado(s)
 </div>
 
 </body>
@@ -998,7 +998,7 @@ st.markdown(
                  style="margin:6px; background:#1e2130; border-radius:8px; padding:5px; opacity:0.8;">
         </a>
         <p style="font-size: 0.75rem; color: #3a4460; margin-top: 14px;">
-            Finanzas Personales V14
+            Finanzas Personales V1.14
         </p>
     </div>
     """,
