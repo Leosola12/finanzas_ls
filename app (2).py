@@ -7,7 +7,7 @@ import io
 import base64
 from datetime import datetime
 
-st.set_page_config(page_title="Finanzas Personales V13", layout="wide", page_icon="💰")
+st.set_page_config(page_title="Finanzas Personales V14", layout="wide", page_icon="💰")
 
 # ─────────────────────────────────────────
 # CSS
@@ -28,6 +28,22 @@ st.markdown("""
     .kpi-label { color: #8892a4; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
     .kpi-value { color: #ffffff; font-size: 24px; font-weight: 700; margin-top: 4px; }
     .kpi-sub   { color: #8892a4; font-size: 12px; margin-top: 2px; }
+    .kpi-label-row { display: flex; align-items: center; gap: 6px; }
+    .tooltip-icon {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 15px; height: 15px; border-radius: 50%;
+        background: #3a4460; color: #8892a4; font-size: 10px;
+        cursor: help; position: relative; flex-shrink: 0;
+    }
+    .tooltip-icon:hover::after {
+        content: attr(data-tip);
+        position: absolute; bottom: 22px; left: 50%; transform: translateX(-50%);
+        background: #1a2035; color: #c8d0e0; font-size: 11px; line-height: 1.5;
+        padding: 10px 14px; border-radius: 8px; width: 260px;
+        border: 1px solid #2e3a55; box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        z-index: 9999; pointer-events: none; white-space: normal; font-weight: 400;
+        text-transform: none; letter-spacing: 0;
+    }
     .section-title {
         font-size: 18px; font-weight: 600; color: #e0e6f0;
         margin: 28px 0 12px 0; border-bottom: 1px solid #2a3040; padding-bottom: 6px;
@@ -80,10 +96,16 @@ def pct(x):
     except:
         return "0%"
 
-def kpi_card(label, value, sub="", color="blue"):
+def kpi_card(label, value, sub="", color="blue", tooltip=""):
+    tip_html = (
+        f'<span class="tooltip-icon" data-tip="{tooltip}">?</span>'
+        if tooltip else ""
+    )
     st.markdown(f"""
     <div class="kpi-card {color}">
-        <div class="kpi-label">{label}</div>
+        <div class="kpi-label-row">
+            <span class="kpi-label">{label}</span>{tip_html}
+        </div>
         <div class="kpi-value">{value}</div>
         {'<div class="kpi-sub">' + sub + '</div>' if sub else ''}
     </div>
@@ -264,7 +286,7 @@ with tab1:
     with c2:
         kpi_card("Gastos", fmt(total_gas), color="red")
     with c3:
-        kpi_card("Ahorro", fmt(ahorro), color="green" if ahorro >= 0 else "red")
+        kpi_card("Ahorro", fmt(ahorro), color="green" if ahorro >= 0 else "red", tooltip="Este valor es la diferencia entre los ingresos y gastos registrados en el período. No necesariamente refleja dinero efectivamente ahorrado: puede haber gastos no registrados, movimientos fuera del tracker o diferencias de timing.")
     with c4:
         kpi_card("Tasa de ahorro", pct(tasa_ahorro), color="green" if tasa_ahorro >= 0.15 else "yellow" if tasa_ahorro >= 0 else "red")
     with c5:
@@ -951,3 +973,34 @@ with tab4:
             except Exception as e:
                 st.error(f"Error generando el reporte: {e}")
                 st.info("Asegurate de tener `kaleido` instalado: `pip install kaleido`")
+
+
+# ─────────────────────────────────────────
+# FOOTER
+# ─────────────────────────────────────────
+st.markdown("---")
+st.markdown(
+    """
+    <div style="text-align:center; padding: 24px 0 12px 0;">
+        <p style="font-size: 0.95rem; color: #8892a4; margin-bottom: 12px;">
+            Creado por <span style="color:#e0e6f0; font-weight:600;">Leonardo Sola</span>
+        </p>
+        <a href="https://github.com/LeoSola12" target="_blank">
+            <img src="https://cdn-icons-png.flaticon.com/512/733/733553.png" width="34"
+                 style="margin:6px; background:#1e2130; border-radius:8px; padding:5px; opacity:0.8; transition:opacity .2s;">
+        </a>
+        <a href="https://www.instagram.com/leeeeeeeo_/" target="_blank">
+            <img src="https://cdn-icons-png.flaticon.com/512/2111/2111463.png" width="34"
+                 style="margin:6px; background:#1e2130; border-radius:8px; padding:5px; opacity:0.8;">
+        </a>
+        <a href="https://x.com/LeoSola7" target="_blank">
+            <img src="https://cdn-icons-png.flaticon.com/512/5968/5968830.png" width="34"
+                 style="margin:6px; background:#1e2130; border-radius:8px; padding:5px; opacity:0.8;">
+        </a>
+        <p style="font-size: 0.75rem; color: #3a4460; margin-top: 14px;">
+            Finanzas Personales V14
+        </p>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
