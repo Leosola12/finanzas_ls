@@ -264,7 +264,7 @@ with tab1:
     with c2:
         kpi_card("Gastos", fmt(total_gas), color="red")
     with c3:
-        kpi_card("Ahorro", fmt(ahorro), color="green" if ahorro >= 0 else "red")
+        kpi_card("Ahorro teórico", fmt(ahorro), color="green" if ahorro >= 0 else "red")
     with c4:
         kpi_card("Tasa de ahorro", pct(tasa_ahorro), color="green" if tasa_ahorro >= 0.15 else "yellow" if tasa_ahorro >= 0 else "red")
     with c5:
@@ -310,9 +310,9 @@ with tab1:
         insights = []
         
         if tasa_ahorro >= 0.20:
-            insights.append(("✅", f"Excelente tasa de ahorro: **{pct(tasa_ahorro)}** de tus ingresos."))
+            insights.append(("✅", f"Excelente tasa de ahorro teórico: **{pct(tasa_ahorro)}** de tus ingresos."))
         elif tasa_ahorro >= 0.10:
-            insights.append(("🟡", f"Tasa de ahorro moderada: **{pct(tasa_ahorro)}**. Podés mejorar."))
+            insights.append(("🟡", f"Tasa de ahorro teórico moderada: **{pct(tasa_ahorro)}**. Podés mejorar."))
         elif tasa_ahorro >= 0:
             insights.append(("⚠️", f"Ahorrás poco: **{pct(tasa_ahorro)}** de tus ingresos. Margen estrecho."))
         else:
@@ -395,7 +395,7 @@ with tab1:
         marker=dict(size=8, color="#2ecc71")
     ))
     fig_evo.add_trace(go.Scatter(
-        x=evo_df.index, y=evo_df["Ahorro"],
+        x=evo_df.index, y=evo_df["Ahorro teórico"],
         name="Ahorro", mode="lines+markers",
         line=dict(color="#4f8ef7", width=2, dash="dot"),
         marker=dict(size=6, color="#4f8ef7")
@@ -598,7 +598,7 @@ with tab4:
 
                 # Hoja resumen
                 resumen_data = {
-                    "Métrica": ["Ingresos", "Gastos", "Ahorro", "Tasa de ahorro", "Score salud",
+                    "Métrica": ["Ingresos", "Gastos", "Ahorro Teórico", "Tasa de ahorro teórico", "Score salud",
                                 "Costo de vida (NEC+FIJO)", "Gastos discrecionales", "Ingresos fijos"],
                     "Valor": [fmt(total_ing), fmt(total_gas), fmt(ahorro), pct(tasa_ahorro),
                               f"{score}/100", fmt(nec+fijo), fmt(disc), fmt(fijo_ing)],
@@ -692,8 +692,8 @@ with tab4:
             fig_pdf_evo.add_trace(go.Scatter(x=evo_df.index, y=evo_df["Ingresos"],
                                               name="Ingresos", mode="lines+markers",
                                               line=dict(color="#22c55e", width=3)))
-            fig_pdf_evo.add_trace(go.Scatter(x=evo_df.index, y=evo_df["Ahorro"],
-                                              name="Ahorro", mode="lines+markers",
+            fig_pdf_evo.add_trace(go.Scatter(x=evo_df.index, y=evo_df["Ahorro teórico"],
+                                              name="Ahorro teórico", mode="lines+markers",
                                               line=dict(color="#3b82f6", width=2, dash="dot")))
             fig_pdf_evo.update_layout(height=320, paper_bgcolor="white", font=dict(color="#333"),
                                        title="Evolución mensual",
