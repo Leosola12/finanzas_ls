@@ -7,7 +7,7 @@ import io
 import base64
 from datetime import datetime
 
-st.set_page_config(page_title="Finanzas Personales V1.14", layout="wide", page_icon="💰")
+st.set_page_config(page_title="Finanzas Personales V14", layout="wide", page_icon="💰")
 
 # ─────────────────────────────────────────
 # CSS
@@ -132,7 +132,7 @@ with st.sidebar:
     mapping_i_file = st.file_uploader("Mapeo ingresos (.csv)", type=["csv"])
 
 if not file:
-    st.markdown("## 💰 Finanzas Personales V.14")
+    st.markdown("## 💰 Finanzas Personales V1.14")
     st.info("Subí tu Excel en el panel izquierdo para comenzar.")
     st.stop()
 
@@ -280,7 +280,10 @@ tab1, tab2, tab3, tab4 = st.tabs([
 with tab1:
     
     # KPIs
-    c1, c2, c3, c4, c5 = st.columns(5)
+    costo_vida = nec + fijo
+    ratio_costo_vida = costo_vida / total_ing if total_ing else 0
+
+    c1, c2, c3, c4, c5, c6 = st.columns(6)
     with c1:
         kpi_card("Ingresos", fmt(total_ing), color="green")
     with c2:
@@ -290,6 +293,13 @@ with tab1:
     with c4:
         kpi_card("Tasa de ahorro", pct(tasa_ahorro), color="green" if tasa_ahorro >= 0.15 else "yellow" if tasa_ahorro >= 0 else "red")
     with c5:
+        kpi_card(
+            "Costo de vida mínimo", fmt(costo_vida),
+            sub=f"{pct(ratio_costo_vida)} de tus ingresos",
+            color="green" if ratio_costo_vida < 0.60 else "yellow" if ratio_costo_vida < 0.80 else "red",
+            tooltip="Suma de gastos NEC (necesidades básicas) y FIJO (obligaciones recurrentes). Representa el piso mensual que no podés evitar, independientemente de tus decisiones de consumo."
+        )
+    with c6:
         kpi_card("Salud financiera", f"{score}/100", sub=score_text, color=score_color)
 
     st.markdown("")
@@ -356,6 +366,15 @@ with tab1:
             insights.append(("🟡", f"Ingresos moderadamente estables: **{pct(ratio_ing_fijo)}** son fijos."))
         else:
             insights.append(("⚠️", f"Alta dependencia de ingresos variables (**{pct(1-ratio_ing_fijo)}**)."))
+
+        ratio_costo_vida_l = (nec + fijo) / total_ing if total_ing else 0
+        margen = total_ing - (nec + fijo)
+        if ratio_costo_vida_l < 0.60:
+            insights.append(("✅", f"Tu costo de vida mínimo es **{pct(ratio_costo_vida_l)}** de tus ingresos. Margen discrecional: **{fmt(margen)}**."))
+        elif ratio_costo_vida_l < 0.80:
+            insights.append(("🟡", f"Tu costo de vida mínimo consume **{pct(ratio_costo_vida_l)}** de tus ingresos. Margen ajustado: **{fmt(margen)}**."))
+        else:
+            insights.append(("⚠️", f"Tu costo de vida mínimo consume **{pct(ratio_costo_vida_l)}** de tus ingresos. Solo te quedan **{fmt(margen)}** de margen real."))
 
         for icon, text in insights:
             st.markdown(f"{icon} {text}")
